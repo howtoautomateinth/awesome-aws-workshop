@@ -1,0 +1,58 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "S3Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "DeletionPolicy": "Delete",
+            "Properties": {
+                "AccessControl": "PublicRead",
+                "CorsConfiguration": {
+                    "CorsRules": [
+                        {
+                            "AllowedHeaders": [
+                                "*"
+                            ],
+                            "AllowedMethods": [
+                                "GET"
+                            ],
+                            "AllowedOrigins": [
+                                "*"
+                            ],
+                            "ExposedHeaders": [
+                                "Date"
+                            ],
+                            "Id": "myCORSRuleId1",
+                            "MaxAge": 3600
+                        },
+                        {
+                            "AllowedHeaders": [
+                                "x-amz-*"
+                            ],
+                            "AllowedMethods": [
+                                "DELETE"
+                            ],
+                            "AllowedOrigins": [
+                                "http://www.example1.com"
+                            ],
+                            "ExposedHeaders": [
+                                "Connection",
+                                "Server",
+                                "Date"
+                            ],
+                            "Id": "myCORSRuleId2",
+                            "MaxAge": 1800
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "BucketName": {
+            "Value": {
+                "Ref": "S3Bucket"
+            },
+            "Description": "This message should show on GUI or your CLI"
+        }
+    }
+}
