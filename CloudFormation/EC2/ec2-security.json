@@ -1,0 +1,81 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "EC2 with Security Group and Output to GUI",
+    "Metadata": {},
+    "Parameters": {},
+    "Mappings": {},
+    "Conditions": {},
+    "Resources": {
+        "EC2WithSecurityInstance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": "ami-01d025118d8e760db",
+                "InstanceType": "t2.nano",
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sdm",
+                        "Ebs": {
+                            "VolumeType": "gp2",
+                            "DeleteOnTermination": true,
+                            "VolumeSize": 20
+                        }
+                    }
+                ],
+                "SecurityGroupIds": [{ "Fn::GetAtt" : [ "InstanceSecurityGroup", "GroupId" ] }],
+                "SubnetId" : {"Ref":"InstanceSubnet"}
+            }
+        },
+        "EC2WithSecurityVPC": {
+            "Type" : "AWS::EC2::VPC",
+            "Properties" : {
+                "CidrBlock" : "10.0.0.0/16"
+              }
+          },
+        "InstanceSecurityGroup":{
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "VpcId": {"Ref":"EC2WithSecurityVPC"},
+                "GroupDescription" : "allow 80 and 22",
+                "SecurityGroupIngress" : [{
+                    "CidrIp" : "0.0.0.0/0",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "IpProtocol" : "tcp"
+                },{
+                    "CidrIp" : "0.0.0.0/0",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "IpProtocol" : "tcp"
+                }]
+            }
+        },
+        "InstanceSubnet":{
+            "Type": "AWS::EC2::Subnet",
+            "Properties":{
+                "AvailabilityZone": "us-east-1b",
+                "VpcId": {"Ref":"EC2WithSecurityVPC"},
+                "CidrBlock": "10.0.0.0/21"
+            }
+        },
+        "MyLogGroup": {
+          "Type": "AWS::Logs::LogGroup",
+          "Properties": {
+              "RetentionInDays": 7
+          }
+      }
+    },
+    "Outputs": {
+        "InstanceId": {
+            "Value": {
+                "Ref": "EC2WithSecurityInstance"
+            },
+            "Description": "EC2WithSecurity ID should show on GUI or your CLI"
+        },
+        "LogGroupID":{
+            "Value": {
+                "Ref": "MyLogGroup"
+            },
+            "Description": "MyLogGroup ID should show on GUI or your CLI"
+        }
+    }
+}
