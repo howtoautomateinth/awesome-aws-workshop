@@ -1,0 +1,38 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Metadata": {},
+    "Parameters": {},
+    "Mappings": {},
+    "Conditions": {},
+    "Resources": {
+        "MyEC2Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": "ami-01d025118d8e760db",
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sdm",
+                        "Ebs": {
+                            "VolumeType": "io1",
+                            "Iops": 200,
+                            "DeleteOnTermination": true,
+                            "VolumeSize": 20
+                        }
+                    },
+                    {
+                        "DeviceName": "/dev/sdk",
+                        "NoDevice": {}
+                    }
+                ]
+            }
+        },
+        "MyLogGroup": {
+          "Type": "AWS::Logs::LogGroup",
+          "Properties": {
+              "RetentionInDays": 7
+          }
+      }
+    },
+    "Outputs": {}
+}

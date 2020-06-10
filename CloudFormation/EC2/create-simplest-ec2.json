@@ -1,0 +1,23 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Metadata": {},
+    "Parameters": {},
+    "Mappings": {},
+    "Conditions": {},
+    "Resources": {
+        "MyEC2Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": "ami-01d025118d8e760db"
+            }
+        },
+        "MyLogGroup": {
+          "Type": "AWS::Logs::LogGroup",
+          "Properties": {
+              "RetentionInDays": 7
+          }
+      }
+    },
+    "Outputs": {}
+}
