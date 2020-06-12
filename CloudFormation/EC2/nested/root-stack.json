@@ -1,0 +1,47 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AWS CloudFormation Root stack",
+    "Metadata": {},
+    "Parameters": {
+        "EnvironmentName": {
+            "Description": "An environment name",
+            "Default": "full-vpc-reuse",
+            "Type": "String"
+        }
+    },
+    "Mappings": {},
+    "Conditions": {},
+    "Resources": {
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.1/16",
+                "EnableDnsHostnames": true
+            }
+        },
+        "InstanceSubnet": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": "us-east-1b",
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": "10.0.0.0/21"
+            }
+        }
+    },
+    "Outputs": {
+        "VPCId": {
+            "Description": "VPC ID",
+            "Value": {
+                "Ref": "VPC"
+            }
+        },
+        "SubnetId": {
+            "Description": "SubnetId ID",
+            "Value": {
+                "Ref": "InstanceSubnet"
+            }
+        }
+    }
+}

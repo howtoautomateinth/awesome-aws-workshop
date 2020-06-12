@@ -1,0 +1,100 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AWS CloudFormation Existing Stack",
+    "Metadata": {},
+    "Parameters": {},
+    "Mappings": {},
+    "Conditions": {},
+    "Resources": {
+        "NetworkStack": {
+            "Type": "AWS::CloudFormation::Stack",
+            "Properties": {
+                "TemplateURL": "https://hta-cloudformation-bucket.s3.amazonaws.com/ec2/nested/root-stack.json",
+                "Parameters": {
+                    "EnvironmentName": "HTA - Nested Stack"
+                },
+                "TimeoutInMinutes": 60
+            }
+        },
+        "EC2WithSecurityInstance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": "ami-01d025118d8e760db",
+                "InstanceType": "t2.nano",
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sdm",
+                        "Ebs": {
+                            "VolumeType": "gp2",
+                            "DeleteOnTermination": true,
+                            "VolumeSize": 20
+                        }
+                    }
+                ],
+                "SecurityGroupIds": [
+                    {
+                        "Fn::GetAtt": [
+                            "InstanceSecurityGroup",
+                            "GroupId"
+                        ]
+                    }
+                ],
+                "SubnetId": {
+                    "Fn::GetAtt": [
+                        "NetworkStack",
+                        "Outputs.SubnetId"
+                    ]
+                }
+            }
+        },
+        "InstanceSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "VpcId": {
+                    "Fn::GetAtt": [
+                        "NetworkStack",
+                        "Outputs.VPCId"
+                    ]
+                },
+                "GroupDescription": "allow 80 and 22",
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": 22,
+                        "ToPort": 22,
+                        "IpProtocol": "tcp"
+                    },
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": 80,
+                        "ToPort": 80,
+                        "IpProtocol": "tcp"
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "NetworkStackId": {
+            "Value": {
+                "Ref": "NetworkStack"
+            }
+        },
+        "NestedVPCId": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "NetworkStack",
+                    "Outputs.VPCId"
+                ]
+            }
+        },
+        "NestedSubnetId": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "NetworkStack",
+                    "Outputs.SubnetId"
+                ]
+            }
+        }
+    }
+}
