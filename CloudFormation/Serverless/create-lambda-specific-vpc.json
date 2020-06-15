@@ -1,0 +1,158 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "To use this template or create a function,you need a deployment package and an execution role (which is xray,lambda,ec2 - because it need to attach ENI into the vpc and also create vpc which use ec2 permission). The deployment package contains your function code",
+    "Metadata": {},
+    "Parameters": {},
+    "Mappings": {},
+    "Conditions": {},
+    "Resources": {
+        "LambdaExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "hta-cloudformation-lambda",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "lambda:*"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "PolicyName": "hta-cloudformation-xray",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "xray:*"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "PolicyName": "hta-cloudformation-ec2",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "ec2:*"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "HelloWorldLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Handler": "app.lambdaHandler",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaExecutionRole",
+                        "Arn"
+                    ]
+                },
+                "Code": {
+                    "S3Bucket": "hta-cloudformation-bucket",
+                    "S3Key": "serverless/lambda-code/lambda-code.zip"
+                },
+                "Runtime": "nodejs12.x",
+                "Timeout": 25,
+                "TracingConfig": {
+                    "Mode": "Active"
+                },
+                "VpcConfig": {
+                    "SecurityGroupIds": [
+                        {"Ref": "SecurityGroup"}
+                    ],
+                    "SubnetIds": [
+                        {"Ref": "FirstPublicSubnet"}
+                    ]
+                }
+            }
+        },
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.1/16",
+                "EnableDnsHostnames": true
+            }
+        },
+        "FirstPublicSubnet": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": "10.0.10.1/24",
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        0,
+                        {
+                            "Fn::GetAZs": ""
+                        }
+                    ]
+                },
+                "MapPublicIpOnLaunch": true
+            }
+        },
+        "SecurityGroup":{
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "VpcId": {"Ref":"VPC"},
+                "GroupDescription" : "allow 80 and 22",
+                "SecurityGroupIngress" : [{
+                    "CidrIp" : "0.0.0.0/0",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "IpProtocol" : "tcp"
+                },{
+                    "CidrIp" : "0.0.0.0/0",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "IpProtocol" : "tcp"
+                }]
+            }
+        }
+    },
+    "Outputs": {}
+}
