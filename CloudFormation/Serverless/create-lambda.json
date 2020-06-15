@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "To use this template or create a function,you need a deployment package and an execution role. The deployment package contains your function code",
+    "Description": "To use this template or create a function,you need a deployment package and an execution role (which is xray,lambda). The deployment package contains your function code",
     "Metadata": {},
     "Parameters": {},
     "Mappings": {},
