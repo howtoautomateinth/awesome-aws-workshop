@@ -93,7 +93,7 @@
                         "var response = require('cfn-response');",
                         "exports.lambdaHandler = function(event, context) {",
                         "  var input = event.ResourceProperties.SimpleWord;",
-                        "  var responseData = {Value: input + ' --> HowtoAutomate.in.th'};",
+                        "  var responseData = {Value: input + ' --> HowtoAutomate.in.th', RequestEvent: event};",
                         "  response.send(event, context, response.SUCCESS, responseData);",
                         "};"
                     ]]}
