@@ -1,0 +1,136 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "A simple custom resource in Cfn",
+    "Metadata": {},
+    "Parameters": {},
+    "Mappings": {},
+    "Conditions": {},
+    "Resources": {
+        "LambdaRandomStringExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "hta-cloudformation-lambda",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "lambda:*"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "PolicyName": "hta-cloudformation-xray",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "xray:*"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "PolicyName": "hta-cloudformation-logs",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:DescribeLogGroups",
+                                        "logs:DescribeLogStreams",
+                                        "logs:PutLogEvents",
+                                        "logs:GetLogEvents",
+                                        "logs:FilterLogEvents"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "HelloWorldWithRandomStringLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Code":{
+                    "ZipFile": { "Fn::Join": ["", [
+                        "var response = require('cfn-response');",
+                        "exports.lambdaHandler = function(event, context) {",
+                        "  var input = parseInt(event.ResourceProperties.StringLength);",
+                        "  var responseData = {Value: input + ' --> HowtoAutomate.in.th'};",
+                        "  response.send(event, context, response.SUCCESS, responseData);",
+                        "};"
+                    ]]}
+                },  
+                "Handler": "index.lambdaHandler",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaRandomStringExecutionRole",
+                        "Arn"
+                    ]
+                },
+                "Runtime": "nodejs12.x",
+                "Timeout": 25,
+                "TracingConfig": {
+                    "Mode": "Active"
+                }
+            }
+        },
+        "GetRandomString": {
+            "Type": "Custom::RandomString",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "HelloWorldWithRandomStringLambda",
+                        "Arn"
+                    ]
+                },
+                "Dummy": 1,
+                "StringWord": "Mart"
+            }
+        }
+    },
+    "Outputs": {
+        "CustomValue": {
+            "Value": {
+                "Fn::GetAtt": ["GetRandomString","Value"]
+            }
+        }
+    }
+}
