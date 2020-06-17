@@ -85,14 +85,14 @@
                 ]
             }
         },
-        "HelloWorldWithRandomStringLambda": {
+        "HelloWorldWithConcatStringLambda": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
                 "Code":{
                     "ZipFile": { "Fn::Join": ["", [
                         "var response = require('cfn-response');",
                         "exports.lambdaHandler = function(event, context) {",
-                        "  var input = parseInt(event.ResourceProperties.StringLength);",
+                        "  var input = event.ResourceProperties.SimpleWord;",
                         "  var responseData = {Value: input + ' --> HowtoAutomate.in.th'};",
                         "  response.send(event, context, response.SUCCESS, responseData);",
                         "};"
@@ -112,24 +112,24 @@
                 }
             }
         },
-        "GetRandomString": {
+        "GetConcatString": {
             "Type": "Custom::RandomString",
             "Properties": {
                 "ServiceToken": {
                     "Fn::GetAtt": [
-                        "HelloWorldWithRandomStringLambda",
+                        "HelloWorldWithConcatStringLambda",
                         "Arn"
                     ]
                 },
                 "Dummy": 1,
-                "StringWord": "Mart"
+                "SimpleWord": "Mart"
             }
         }
     },
     "Outputs": {
         "CustomValue": {
             "Value": {
-                "Fn::GetAtt": ["GetRandomString","Value"]
+                "Fn::GetAtt": ["GetConcatString","Value"]
             }
         }
     }
