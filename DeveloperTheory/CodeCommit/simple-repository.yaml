@@ -6,4 +6,8 @@ Resources:
     Properties:
       RepositoryName: MySimpleRepo
       RepositoryDescription: Simpleest Repository with Cfn
+      Code:
+        S3:
+          Bucket: hta-cloudformation-bucket
+          Key: DeveloperTheory/code.zip
 
