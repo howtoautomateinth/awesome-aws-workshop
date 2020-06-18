@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Simple repository on cloud
+Resources: 
+  MySimpleRepo:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: MySimpleRepo
+      RepositoryDescription: Simpleest Repository with Cfn
+
