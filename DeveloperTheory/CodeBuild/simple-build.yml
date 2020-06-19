@@ -51,6 +51,7 @@ Resources:
         Type: 'NO_ARTIFACTS'
       Source:
         Type: 'CODECOMMIT'
+        BuildSpec: 'buildspec_nodejs.yml'
         Location: !Sub 'https://git-codecommit.${AWS::Region}.amazonaws.com/v1/repos/${MySimpleRepo.Name}'
       Environment:
         Type: LINUX_CONTAINER
