@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Simple repository on cloud
+Resources:
+  MyBuilderPermission:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: hta-cloudformation-codecommit
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'codecommit:*'
+                Resource:
+                  - '*'
+        - PolicyName: hta-cloudformation-cloudwatch
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'logs:*'
+                Resource:
+                  - '*'
+        - PolicyName: hta-cloudformation-ecr
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'ecr:*'
+                Resource:
+                  - '*'
+  MySimpleRepo:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: MySimpleRepo
+      RepositoryDescription: Simpleest Repository with Cfn
+      Code:
+        S3:
+          Bucket: hta-cloudformation-bucket
+          Key: DeveloperTheory/DockerCode.zip
+  MyECRRepository: 
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: 'simple-docker-repository'
+      RepositoryPolicyText: 
+        Version: '2012-10-17'
+        Statement: 
+          - 
+            Sid: AllowPushPull
+            Effect: Allow
+            Principal: '*'
+            Action: 
+              - "ecr:*"
+  MyBuilder:
+    Type: AWS::CodeBuild::Project
+    DependsOn:
+      - MySimpleRepo
+    Properties:
+      ServiceRole: !Ref MyBuilderPermission
+      Artifacts: 
+        Type: 'NO_ARTIFACTS'
+      Source:
+        Type: 'CODECOMMIT'
+        BuildSpec: 'buildspec_docker.yml'
+        GitCloneDepth: 1
+        Location: !Sub 'https://git-codecommit.${AWS::Region}.amazonaws.com/v1/repos/${MySimpleRepo.Name}'
+      Environment:
+        PrivilegedMode: true
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:4.0
+        EnvironmentVariables:
+          - Name: 'IMAGE_REPO_NAME'
+            Type: 'PLAINTEXT'
+            Value: !Ref MyECRRepository
+          - Name: 'IMAGE_TAG'
+            Type: 'PLAINTEXT'
+            Value: 'latest'
+          - Name: 'AWS_ACCOUNT_ID'
+            Type: 'PLAINTEXT'
+            Value: !Sub ${AWS::AccountId}
+          - Name: 'AWS_DEFAULT_REGION'
+            Type: 'PLAINTEXT'
+            Value: !Sub ${AWS::Region}
+           
