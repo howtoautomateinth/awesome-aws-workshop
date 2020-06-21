@@ -168,6 +168,11 @@ Resources:
                   - 'logs:*'
                 Resource:
                   - '*'
+Outputs:
+  EC2DnsName:
+    Value:
+      !Sub "${MyEC2Instance.PublicDnsName}:3000" 
+  
 
 
 
