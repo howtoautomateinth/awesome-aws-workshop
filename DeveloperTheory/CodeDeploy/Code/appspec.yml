@@ -4,13 +4,17 @@ os: linux
 
 files:
   - source: /
-    destination: /tmp/
+    destination: /tmp/nodejsapp
     
 permissions:
-  - object: /
+  - object: /tmp/
     pattern: "**"
     owner: ec2-user
     group: ec2-user
+    mode: 755
+    type:
+      - file
+      - directory
 
 hooks:
   BeforeInstall:

@@ -1,7 +1,7 @@
 #!/bin/bash
-cd /tmp/
+cd /tmp/nodejsapp
 
-sudo yum update
+sudo yum -y update
 
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
 
@@ -16,4 +16,3 @@ node --version
 npm --version
 
 npm install -g pm2
-npm install
