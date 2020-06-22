@@ -21,3 +21,8 @@ in this step SAM will upload data to store in your S3 bucket and generate file n
 ## Update Lambda Function
 - If we have any change in our Lambda Function (myDateTimeFunction.js) just repeat above steps
 - When you update lambda function to new version you will see in CodeDeploy Console that it will ```Linear10PercentEvery1Minute``` to new version of lambda since we have that configuration
+
+## What really hook step do?
+it just run verify task into lambda function before and after real traffic go in to our Lambda Function (send request with parameter to test our function and send result to CodeDeploy)
+
+![Lambda Hook](https://docs.aws.amazon.com/codedeploy/latest/userguide/images/lifecycle-event-order-lambda.png)
