@@ -1,0 +1,304 @@
+Parameters:
+  BranchName:
+    Description: GitHub branch name
+    Type: String
+    Default: master
+  RepositoryName:
+    Description: GitHub repository name
+    Type: String
+    Default: aws_github_hook
+  GitHubOwner:
+    Type: String
+    Default: howtoautomateinth
+  TagKey:
+    Description: EC2 Tag Key
+    Type: String
+    Default: developertheory
+  TagValue:
+    Description: EC2 Tag Valie
+    Type: String
+    Default: CodePipeline
+  AppName:
+    Description: Application
+    Type: String
+    Default: HTAEC2Application
+Resources:
+  CodePipelineArtifactStoreBucket:
+    Type: 'AWS::S3::Bucket'
+  AppPipelineWebhook:
+    Type: 'AWS::CodePipeline::Webhook'
+    Properties:
+      Authentication: GITHUB_HMAC
+      AuthenticationConfiguration:
+        SecretToken: '{{resolve:secretsmanager:MyGitSecretToken:SecretString:SecretToken}}'
+      Filters:
+        - JsonPath: $.ref
+          MatchEquals: 'refs/heads/{Branch}'
+      TargetPipeline: !Ref AppPipeline
+      TargetAction: SourceAction
+      Name: AppPipelineWebhook
+      TargetPipelineVersion: !GetAtt AppPipeline.Version
+      RegisterWithThirdParty: true
+  AppPipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties:
+      Name: github-events-pipeline
+      RoleArn: !GetAtt CodePipelineServiceRole.Arn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: '1'
+                Provider: GitHub
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                Owner: !Ref GitHubOwner
+                Repo: !Ref RepositoryName
+                Branch: !Ref BranchName
+                OAuthToken: '{{resolve:secretsmanager:MyGitHubSecret2:SecretString:token}}'
+                PollForSourceChanges: false
+              RunOrder: 1
+        - Name: Beta
+          Actions:
+            - Name: BetaAction
+              InputArtifacts:
+                - Name: SourceOutput
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: '1'
+                Provider: CodeDeploy
+              Configuration:
+                ApplicationName: !Ref CodeDeployApplication
+                DeploymentGroupName: !Ref HTADeploymentGroup
+              RunOrder: 1
+      ArtifactStore:
+        Type: S3
+        Location: !Ref CodePipelineArtifactStoreBucket
+  CodePipelineServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: AWS-CodePipeline-Service-3
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codecommit:CancelUploadArchive'
+                  - 'codecommit:GetBranch'
+                  - 'codecommit:GetCommit'
+                  - 'codecommit:GetUploadArchiveStatus'
+                  - 'codecommit:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'codedeploy:CreateDeployment'
+                  - 'codedeploy:GetApplicationRevision'
+                  - 'codedeploy:GetDeployment'
+                  - 'codedeploy:GetDeploymentConfig'
+                  - 'codedeploy:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'codebuild:BatchGetBuilds'
+                  - 'codebuild:StartBuild'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'lambda:*'
+                  - 'lambda:ListFunctions'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'elasticbeanstalk:*'
+                  - 'ec2:*'
+                  - 'elasticloadbalancing:*'
+                  - 'autoscaling:*'
+                  - 'cloudwatch:*'
+                  - 's3:*'
+                  - 'sns:*'
+                  - 'cloudformation:*'
+                  - 'rds:*'
+                  - 'sqs:*'
+                  - 'ecs:*'
+                  - 'secretsmanager:*'
+                Resource: '*'
+  CodeDeployApplication:
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ComputePlatform: Server
+      ApplicationName: !Ref AppName
+  CodeDeployConfigurationGroup:
+    Type: AWS::CodeDeploy::DeploymentConfig
+    Properties: 
+      DeploymentConfigName: HTADeployConfigurationGroup 
+      MinimumHealthyHosts: 
+        Type: "FLEET_PERCENT"
+        Value: 75
+  HTADeploymentGroup: 
+    Type: AWS::CodeDeploy::DeploymentGroup
+    DependsOn:
+      - MyEC2Instance
+    Properties: 
+      ApplicationName: !Ref AppName
+      DeploymentConfigName: "CodeDeployDefault.OneAtATime"
+      Deployment: 
+        Description: "A NodeJs Deployment"
+        IgnoreApplicationStopFailures: true
+        Revision:
+          RevisionType: S3
+          S3Location: 
+            Bucket: 'hta-cloudformation-bucket'
+            Key: 'DeveloperTheory/Revision/NodeJsCode.zip'
+            BundleType: zip
+      ServiceRoleArn: !GetAtt  CodeDeployServiceRole.Arn
+      Ec2TagFilters:
+        - Key: !Ref  TagKey
+          Value: !Ref TagValue
+          Type: 'KEY_AND_VALUE'
+  CodeDeployServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codedeploy.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: AWS-CodeDeploy-Service
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource: '*'
+  MyEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets: 
+          InstallAndRun: 
+            - "config-ec2"
+        config-ec2:
+          packages:
+            yum:
+              ruby: []
+          files:
+            /home/ec2-user/install:
+              mode: "000755"
+              source:
+                'Fn::Join':
+                  - ''
+                  - - 'https://aws-codedeploy-'
+                    - !Ref 'AWS::Region'
+                    - '.s3.amazonaws.com/latest/install'
+          commands:
+            00-install-agent:
+              command: "./install auto"
+              cwd: "/home/ec2-user/"
+    Properties:
+      ImageId: 'ami-01d025118d8e760db'
+      IamInstanceProfile: !Ref InstanceRoleInstanceProfile
+      KeyName: "cfn-key"
+      InstanceType: t2.micro
+      BlockDeviceMappings:
+        - DeviceName: '/dev/sdm'
+          Ebs:
+            VolumeType: 'io1'
+            Iops: 200
+            DeleteOnTermination: true
+            VolumeSize: 20
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash -xe
+            - |
+              # Install the files and packages from the metadata
+            - '/opt/aws/bin/cfn-init -v '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource MyEC2Instance '
+            - '         --configsets InstallAndRun '
+            - '         --region '
+            - !Ref 'AWS::Region'
+  InstanceRoleInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Roles:
+        - !Ref InstanceServiceRole
+  InstanceServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: HTA-AWS-EC2-Service
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'cloudformation:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'autoscaling:*'
+                Resource: '*'
+        - PolicyName: hta-cloudformation-cloudwatch
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'logs:*'
+                Resource:
+                  - '*'
+Outputs:
+  DefaultNodeJs:
+    Value:
+      !Sub "${MyEC2Instance.PublicDnsName}:3000" 
+  AfterTriggerHttpd:
+    Value:
+      !Sub "${MyEC2Instance.PublicDnsName}" 
