@@ -25,15 +25,30 @@ Resources:
       ApplicationName: !Ref EBFlaskApplication
       Description: AWS ElasticBeanstalk Flask Configuration Template
       OptionSettings:
+      - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+        OptionName: StreamLogs
+        Value: 'true'
+      - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+        OptionName: DeleteOnTerminate
+        Value: 'false'
       - Namespace: aws:autoscaling:asg
         OptionName: MinSize
         Value: '2'
       - Namespace: aws:autoscaling:asg
         OptionName: MaxSize
         Value: '6'
+      - Namespace: aws:elasticbeanstalk:environment:process:default
+        OptionName: Port
+        Value: '5000'
+      - Namespace: aws:elasticbeanstalk:environment:process:default
+        OptionName: StickinessEnabled
+        Value: 'true'
       - Namespace: aws:elasticbeanstalk:environment
         OptionName: EnvironmentType
         Value: LoadBalanced
+      - Namespace: aws:elasticbeanstalk:environment
+        OptionName: LoadBalancerType
+        Value: application
       - Namespace: aws:autoscaling:launchconfiguration
         OptionName: IamInstanceProfile
         Value: aws-elasticbeanstalk-ec2-role
