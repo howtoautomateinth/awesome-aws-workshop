@@ -38,9 +38,6 @@ Resources:
         OptionName: MaxSize
         Value: '6'
       - Namespace: aws:elasticbeanstalk:environment:process:default
-        OptionName: Port
-        Value: '5000'
-      - Namespace: aws:elasticbeanstalk:environment:process:default
         OptionName: StickinessEnabled
         Value: 'true'
       - Namespace: aws:elasticbeanstalk:environment
@@ -52,6 +49,9 @@ Resources:
       - Namespace: aws:autoscaling:launchconfiguration
         OptionName: IamInstanceProfile
         Value: aws-elasticbeanstalk-ec2-role
+      - Namespace: aws:autoscaling:launchconfiguration
+        OptionName: EC2KeyName
+        Value: cfn-key
       SolutionStackName: 64bit Amazon Linux 2 v3.0.3 running Python 3.7
   EBEnvironment:
     Type: AWS::ElasticBeanstalk::Environment
