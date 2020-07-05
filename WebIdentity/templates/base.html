@@ -53,15 +53,6 @@
       crossorigin="anonymous"
     ></script>
     <script src="https://www.gstatic.com/firebasejs/7.15.5/firebase.js"></script>
-    <script>
-      var config = {
-        apiKey: "your-api-key",
-        authDomain: "your-auth-domain",
-      };
-      firebase.initializeApp(config);
-
-      var provider = new firebase.auth.GoogleAuthProvider();
-      provider.addScope("https://www.googleapis.com/auth/contacts.readonly");
-    </script>
+    <script src="../static/js/app.js?random={{ random_number }}"></script>
   </body>
 </html>
