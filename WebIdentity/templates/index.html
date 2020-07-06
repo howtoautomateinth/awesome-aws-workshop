@@ -30,6 +30,7 @@
             <p>
                 <h5>Step 1</h5>
                 <img id="SignInWithGoogle" class="w-75" src="../static/images/btn_google_signin_dark_pressed_web@2x.png"/>
+                <input type="hidden" name="signingoogle" value=""/>
             </p>
 
             <p>
@@ -95,8 +96,11 @@
     </div>
   </div>
   <div class="col-8">
-      <div class="table-secondary h-100">
-        2 of 2
+      <div class="h-100">
+        <p class="h2">S3 <small class="text-muted">Buckets List</small></p>
+        <ul class="list-group" id="buckets">
+          <li class="list-group-item">No bucket list yet</li>
+        </ul>
       </div>
   </div>
 </div>
