@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: To-do list application integration with DeveloperTheory (CodeCommmit, CodeBuil, CodeDeploy) and deploy to Elastic Beanstalk
+Resources: 
+  TodoAppRepository:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: TodoListApplication
+      RepositoryDescription: NodeJs To-do list application
+      Code:
+        S3:
+          Bucket: hta-cloudformation-bucket
+          Key: integration/to-do-app.zip
