@@ -32,6 +32,15 @@ Resources:
                   - 'codecommit:*'
                 Resource:
                   - '*'
+        - PolicyName: hta-cloudformation-s3
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 's3:*'
+                Resource:
+                  - '*'
         - PolicyName: hta-cloudformation-cloudwatch
           PolicyDocument: 
             Version: 2012-10-17
@@ -41,31 +50,6 @@ Resources:
                   - 'logs:*'
                 Resource:
                   - '*'
-  CodeDeployServiceRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - codedeploy.amazonaws.com
-            Action: 'sts:AssumeRole'
-      Path: /
-      Policies:
-        - PolicyName: AWS-CodeDeploy-Service
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ec2:*'
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - 's3:*'
-                Resource: '*'
   TodoAppRepository:
     Type: AWS::CodeCommit::Repository
     Properties:
@@ -91,19 +75,6 @@ Resources:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_SMALL
         Image: aws/codebuild/standard:4.0
-
-  CodeDeployApplication:
-    Type: AWS::CodeDeploy::Application
-    Properties:
-      ComputePlatform: Server
-      ApplicationName: !Ref AppName
-  CodeDeployConfigurationGroup:
-    Type: AWS::CodeDeploy::DeploymentConfig
-    Properties: 
-      DeploymentConfigName: HTADeployConfigurationGroup 
-      MinimumHealthyHosts: 
-        Type: "FLEET_PERCENT"
-        Value: 75
 
   CodePipelineServiceRole:
     Type: AWS::IAM::Role
@@ -189,7 +160,7 @@ Resources:
   AppPipeline: 
     Type: AWS::CodePipeline::Pipeline
     Properties: 
-      Name: ecr-events-pipeline
+      Name: Todolist-app-pipeline
       RoleArn: 
         !GetAtt CodePipelineServiceRole.Arn
       Stages: 
@@ -291,7 +262,7 @@ Resources:
       - Namespace: aws:autoscaling:launchconfiguration
         OptionName: EC2KeyName
         Value: cfn-key
-      SolutionStackName: 64bit Amazon Linux 2 v3.0.3 running Python 3.7
+      SolutionStackName: 64bit Amazon Linux 2 v5.1.0 running Node.js 12
   EBEnvironment:
     Type: AWS::ElasticBeanstalk::Environment
     Properties: 
