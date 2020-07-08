@@ -1,18 +1,14 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: To-do list application integration with DeveloperTheory (CodeCommmit, CodeBuil, CodeDeploy) and deploy to ASG EC2
+Description: To-do list application integration with DeveloperTheory (CodeCommmit, CodeBuil, CodeDeploy) and deploy to EB
 Parameters:
   AppName:
     Description: Application
     Type: String
     Default: TodolistApplication
-  TagKey:
-    Description: EC2 Tag Key
+  EBEnvironmentName:
+    Description: Environment Name
     Type: String
-    Default: application
-  TagValue:
-    Description: EC2 Tag Valie
-    Type: String
-    Default: todolistapp
+    Default: NodeJsEnviroment
 Resources: 
   TodoListBuilderPermission:
     Type: AWS::IAM::Role
@@ -108,102 +104,6 @@ Resources:
       MinimumHealthyHosts: 
         Type: "FLEET_PERCENT"
         Value: 75
-  MyEC2Instance:
-    Type: 'AWS::EC2::Instance'
-    Metadata:
-      AWS::CloudFormation::Init:
-        configSets: 
-          InstallAndRun: 
-            - "config-ec2"
-        config-ec2:
-          packages:
-            yum:
-              ruby: []
-          files:
-            /home/ec2-user/install:
-              mode: "000755"
-              source:
-                'Fn::Join':
-                  - ''
-                  - - 'https://aws-codedeploy-'
-                    - !Ref 'AWS::Region'
-                    - '.s3.amazonaws.com/latest/install'
-          commands:
-            00-install-agent:
-              command: "./install auto"
-              cwd: "/home/ec2-user/"
-    Properties:
-      ImageId: 'ami-01d025118d8e760db'
-      IamInstanceProfile: !Ref InstanceRoleInstanceProfile
-      KeyName: "cfn-key"
-      InstanceType: t2.micro
-      BlockDeviceMappings:
-        - DeviceName: '/dev/sdm'
-          Ebs:
-            VolumeType: 'io1'
-            Iops: 200
-            DeleteOnTermination: true
-            VolumeSize: 20
-      Tags:
-        - Key: !Ref TagKey
-          Value: !Ref TagValue
-      UserData: !Base64 
-        'Fn::Join':
-          - ''
-          - - |
-              #!/bin/bash -xe
-            - |
-              # Install the files and packages from the metadata
-            - '/opt/aws/bin/cfn-init -v '
-            - '         --stack '
-            - !Ref 'AWS::StackName'
-            - '         --resource MyEC2Instance '
-            - '         --configsets InstallAndRun '
-            - '         --region '
-            - !Ref 'AWS::Region'
-  InstanceRoleInstanceProfile:
-    Type: 'AWS::IAM::InstanceProfile'
-    Properties:
-      Roles:
-        - !Ref InstanceServiceRole
-  InstanceServiceRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - ec2.amazonaws.com
-            Action: 'sts:AssumeRole'
-      Path: /
-      Policies:
-        - PolicyName: HTA-AWS-EC2-Service
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 's3:*'
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - 'cloudformation:*'
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - 'autoscaling:*'
-                Resource: '*'
-        - PolicyName: hta-cloudformation-cloudwatch
-          PolicyDocument: 
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action: 
-                  - 'logs:*'
-                Resource:
-                  - '*'
 
   CodePipelineServiceRole:
     Type: AWS::IAM::Role
@@ -325,6 +225,78 @@ Resources:
               Configuration: 
                 ProjectName: !Ref TodoAppBuilder
               RunOrder: 2
+        - 
+          Name: Deploy
+          Actions: 
+            - 
+              Name: DeployAction
+              ActionTypeId: 
+                Category: Deploy
+                Owner: AWS 
+                Version: '1'
+                Provider: ElasticBeanstalk
+              Configuration: 
+                ApplicationName: !Ref EBNodeJsApplication
+                EnvironmentName: !Ref EBEnvironment
+              RunOrder: 3
+              InputArtifacts: 
+                - Name: SourceOutput
       ArtifactStore: 
         Type: S3
         Location: !Ref CodePipelineArtifactStoreBucket
+
+  EBNodeJsApplication:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      Description: AWS Elastic Beanstalk Nodejs Application
+  EBNodeJsApplicationVersion:
+    Type: AWS::ElasticBeanstalk::ApplicationVersion
+    Properties:
+      ApplicationName:
+        !Ref EBNodeJsApplication
+      Description: AWS ElasticBeanstalk Nodejs Application Version
+      SourceBundle:
+        S3Bucket: hta-cloudformation-bucket
+        S3Key: integration/to-do-app.zip
+  EBConfigurationTemplate:
+    Type: AWS::ElasticBeanstalk::ConfigurationTemplate
+    Properties:
+      ApplicationName: !Ref EBNodeJsApplication
+      Description: AWS ElasticBeanstalk Nodejs Configuration Template
+      OptionSettings:
+      - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+        OptionName: StreamLogs
+        Value: 'true'
+      - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+        OptionName: DeleteOnTerminate
+        Value: 'false'
+      - Namespace: aws:autoscaling:asg
+        OptionName: MinSize
+        Value: '2'
+      - Namespace: aws:autoscaling:asg
+        OptionName: MaxSize
+        Value: '6'
+      - Namespace: aws:elasticbeanstalk:environment:process:default
+        OptionName: StickinessEnabled
+        Value: 'true'
+      - Namespace: aws:elasticbeanstalk:environment
+        OptionName: EnvironmentType
+        Value: LoadBalanced
+      - Namespace: aws:elasticbeanstalk:environment
+        OptionName: LoadBalancerType
+        Value: application
+      - Namespace: aws:autoscaling:launchconfiguration
+        OptionName: IamInstanceProfile
+        Value: aws-elasticbeanstalk-ec2-role
+      - Namespace: aws:autoscaling:launchconfiguration
+        OptionName: EC2KeyName
+        Value: cfn-key
+      SolutionStackName: 64bit Amazon Linux 2 v3.0.3 running Python 3.7
+  EBEnvironment:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties: 
+      ApplicationName: !Ref EBNodeJsApplication
+      Description: AWS Elastic Beanstalk Environment running Nodejs Application
+      EnvironmentName: !Ref EBEnvironmentName
+      TemplateName: !Ref EBConfigurationTemplate
+      VersionLabel: !Ref EBNodeJsApplicationVersion
