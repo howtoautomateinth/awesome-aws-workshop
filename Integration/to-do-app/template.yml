@@ -1,6 +1,75 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: To-do list application integration with DeveloperTheory (CodeCommmit, CodeBuil, CodeDeploy) and deploy to Elastic Beanstalk
+Description: To-do list application integration with DeveloperTheory (CodeCommmit, CodeBuil, CodeDeploy) and deploy to ASG EC2
+Parameters:
+  AppName:
+    Description: Application
+    Type: String
+    Default: TodolistApplication
+  TagKey:
+    Description: EC2 Tag Key
+    Type: String
+    Default: application
+  TagValue:
+    Description: EC2 Tag Valie
+    Type: String
+    Default: todolistapp
 Resources: 
+  TodoListBuilderPermission:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: hta-cloudformation-codecommit
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'codecommit:*'
+                Resource:
+                  - '*'
+        - PolicyName: hta-cloudformation-cloudwatch
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'logs:*'
+                Resource:
+                  - '*'
+  CodeDeployServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codedeploy.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: AWS-CodeDeploy-Service
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource: '*'
   TodoAppRepository:
     Type: AWS::CodeCommit::Repository
     Properties:
@@ -10,3 +79,252 @@ Resources:
         S3:
           Bucket: hta-cloudformation-bucket
           Key: integration/to-do-app.zip
+  TodoAppBuilder:
+    Type: AWS::CodeBuild::Project
+    DependsOn:
+      - TodoAppRepository
+    Properties:
+      ServiceRole: !Ref TodoListBuilderPermission
+      Artifacts: 
+        Type: 'NO_ARTIFACTS'
+      Source:
+        Type: 'CODECOMMIT'
+        BuildSpec: 'buildspec_nodejs.yml'
+        Location: !Sub 'https://git-codecommit.${AWS::Region}.amazonaws.com/v1/repos/${TodoAppRepository.Name}'
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:4.0
+
+  CodeDeployApplication:
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ComputePlatform: Server
+      ApplicationName: !Ref AppName
+  CodeDeployConfigurationGroup:
+    Type: AWS::CodeDeploy::DeploymentConfig
+    Properties: 
+      DeploymentConfigName: HTADeployConfigurationGroup 
+      MinimumHealthyHosts: 
+        Type: "FLEET_PERCENT"
+        Value: 75
+  MyEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets: 
+          InstallAndRun: 
+            - "config-ec2"
+        config-ec2:
+          packages:
+            yum:
+              ruby: []
+          files:
+            /home/ec2-user/install:
+              mode: "000755"
+              source:
+                'Fn::Join':
+                  - ''
+                  - - 'https://aws-codedeploy-'
+                    - !Ref 'AWS::Region'
+                    - '.s3.amazonaws.com/latest/install'
+          commands:
+            00-install-agent:
+              command: "./install auto"
+              cwd: "/home/ec2-user/"
+    Properties:
+      ImageId: 'ami-01d025118d8e760db'
+      IamInstanceProfile: !Ref InstanceRoleInstanceProfile
+      KeyName: "cfn-key"
+      InstanceType: t2.micro
+      BlockDeviceMappings:
+        - DeviceName: '/dev/sdm'
+          Ebs:
+            VolumeType: 'io1'
+            Iops: 200
+            DeleteOnTermination: true
+            VolumeSize: 20
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash -xe
+            - |
+              # Install the files and packages from the metadata
+            - '/opt/aws/bin/cfn-init -v '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource MyEC2Instance '
+            - '         --configsets InstallAndRun '
+            - '         --region '
+            - !Ref 'AWS::Region'
+  InstanceRoleInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Roles:
+        - !Ref InstanceServiceRole
+  InstanceServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: HTA-AWS-EC2-Service
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'cloudformation:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'autoscaling:*'
+                Resource: '*'
+        - PolicyName: hta-cloudformation-cloudwatch
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'logs:*'
+                Resource:
+                  - '*'
+
+  CodePipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        -
+          PolicyName: AWS-CodePipeline-Service-3
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - codecommit:CancelUploadArchive
+                  - codecommit:GetBranch
+                  - codecommit:GetCommit
+                  - codecommit:GetUploadArchiveStatus
+                  - codecommit:UploadArchive
+                Resource: '*'
+              -
+                Effect: Allow
+                Action:
+                  - codedeploy:CreateDeployment
+                  - codedeploy:GetApplicationRevision
+                  - codedeploy:GetDeployment
+                  - codedeploy:GetDeploymentConfig
+                  - codedeploy:RegisterApplicationRevision
+                Resource: '*'
+              -
+                Effect: Allow
+                Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource: '*'
+              -
+                Effect: Allow
+                Action:
+                  - devicefarm:ListProjects
+                  - devicefarm:ListDevicePools
+                  - devicefarm:GetRun
+                  - devicefarm:GetUpload
+                  - devicefarm:CreateUpload
+                  - devicefarm:ScheduleRun
+                Resource: '*'
+              -
+                Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                  - lambda:ListFunctions
+                Resource: '*'
+              -
+                Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: '*'
+              -
+                Effect: Allow
+                Action:
+                  - elasticbeanstalk:*
+                  - ec2:*
+                  - elasticloadbalancing:*
+                  - autoscaling:*
+                  - cloudwatch:*
+                  - s3:*
+                  - sns:*
+                  - cloudformation:*
+                  - rds:*
+                  - sqs:*
+                  - ecs:*
+                Resource: '*'
+  CodePipelineArtifactStoreBucket:
+    Type: AWS::S3::Bucket
+  AppPipeline: 
+    Type: AWS::CodePipeline::Pipeline
+    Properties: 
+      Name: ecr-events-pipeline
+      RoleArn: 
+        !GetAtt CodePipelineServiceRole.Arn
+      Stages: 
+        - 
+          Name: Source
+          Actions: 
+            - 
+              Name: SourceAction
+              ActionTypeId: 
+                Category: Source
+                Owner: AWS
+                Version: '1'
+                Provider: CodeCommit
+              OutputArtifacts: 
+                - Name: SourceOutput
+              Configuration: 
+                RepositoryName: !GetAtt TodoAppRepository.Name
+                BranchName: master
+                PollForSourceChanges: True
+              RunOrder: 1
+        - 
+          Name: Build
+          Actions: 
+            - 
+              Name: BuildAction
+              InputArtifacts: 
+                - Name: SourceOutput
+              ActionTypeId: 
+                Category: Build
+                Owner: AWS
+                Version: '1'
+                Provider: CodeBuild
+              Configuration: 
+                ProjectName: !Ref TodoAppBuilder
+              RunOrder: 2
+      ArtifactStore: 
+        Type: S3
+        Location: !Ref CodePipelineArtifactStoreBucket
