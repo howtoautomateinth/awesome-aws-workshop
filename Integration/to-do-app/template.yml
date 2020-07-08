@@ -1,14 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: To-do list application integration with DeveloperTheory (CodeCommmit, CodeBuil, CodeDeploy) and deploy to EB
-Parameters:
-  AppName:
-    Description: Application
-    Type: String
-    Default: TodolistApplication
-  EBEnvironmentName:
-    Description: Environment Name
-    Type: String
-    Default: NodeJsEnviroment
 Resources: 
   TodoListBuilderPermission:
     Type: AWS::IAM::Role
@@ -207,8 +198,8 @@ Resources:
                 Version: '1'
                 Provider: ElasticBeanstalk
               Configuration: 
-                ApplicationName: !Ref EBNodeJsApplication
-                EnvironmentName: !Ref EBEnvironment
+                ApplicationName: !Ref EBApplication
+                EnvironmentName: !Ref TodolistEnvironment
               RunOrder: 3
               InputArtifacts: 
                 - Name: SourceOutput
@@ -216,15 +207,15 @@ Resources:
         Type: S3
         Location: !Ref CodePipelineArtifactStoreBucket
 
-  EBNodeJsApplication:
+  EBApplication:
     Type: AWS::ElasticBeanstalk::Application
     Properties:
       Description: AWS Elastic Beanstalk Nodejs Application
-  EBNodeJsApplicationVersion:
+  EBApplicationVersion:
     Type: AWS::ElasticBeanstalk::ApplicationVersion
     Properties:
       ApplicationName:
-        !Ref EBNodeJsApplication
+        !Ref EBApplication
       Description: AWS ElasticBeanstalk Nodejs Application Version
       SourceBundle:
         S3Bucket: hta-cloudformation-bucket
@@ -232,7 +223,7 @@ Resources:
   EBConfigurationTemplate:
     Type: AWS::ElasticBeanstalk::ConfigurationTemplate
     Properties:
-      ApplicationName: !Ref EBNodeJsApplication
+      ApplicationName: !Ref EBApplication
       Description: AWS ElasticBeanstalk Nodejs Configuration Template
       OptionSettings:
       - Namespace: aws:elasticbeanstalk:cloudwatch:logs
@@ -263,11 +254,10 @@ Resources:
         OptionName: EC2KeyName
         Value: cfn-key
       SolutionStackName: 64bit Amazon Linux 2 v5.1.0 running Node.js 12
-  EBEnvironment:
+  TodolistEnvironment:
     Type: AWS::ElasticBeanstalk::Environment
     Properties: 
-      ApplicationName: !Ref EBNodeJsApplication
+      ApplicationName: !Ref EBApplication
       Description: AWS Elastic Beanstalk Environment running Nodejs Application
-      EnvironmentName: !Ref EBEnvironmentName
       TemplateName: !Ref EBConfigurationTemplate
-      VersionLabel: !Ref EBNodeJsApplicationVersion
+      VersionLabel: !Ref EBApplicationVersion
