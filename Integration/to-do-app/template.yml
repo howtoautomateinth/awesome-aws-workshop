@@ -261,3 +261,33 @@ Resources:
       Description: AWS Elastic Beanstalk Environment running Nodejs Application
       TemplateName: !Ref EBConfigurationTemplate
       VersionLabel: !Ref EBApplicationVersion
+  
+  DynamoDBTable: 
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      AttributeDefinitions: 
+        - 
+          AttributeName: "Header"
+          AttributeType: "S"
+        - 
+          AttributeName: "Content"
+          AttributeType: "S"
+        - 
+          AttributeName: "Tag"
+          AttributeType: "S"
+      KeySchema: 
+        - 
+          AttributeName: "Header"
+          KeyType: "HASH"
+        - 
+          AttributeName: "Content"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "GSI"
+          KeySchema:
+            -
+              AttributeName: "Tag"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: "KEYS_ONLY"
