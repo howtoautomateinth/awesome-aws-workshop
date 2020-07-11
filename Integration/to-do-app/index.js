@@ -1,6 +1,9 @@
 const express = require('express')
+const config = require('config')
 
 const app = express()
+const appConfig = config.get('dbConfig');
+
 app.set("view engine", "ejs");
 app.use("/static",express.static(__dirname + '/static'))
 
