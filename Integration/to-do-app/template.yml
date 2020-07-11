@@ -267,27 +267,27 @@ Resources:
     Properties: 
       AttributeDefinitions: 
         - 
-          AttributeName: "Header"
+          AttributeName: "id"
+          AttributeType: "N"
+        - 
+          AttributeName: "header"
           AttributeType: "S"
         - 
-          AttributeName: "Content"
-          AttributeType: "S"
-        - 
-          AttributeName: "Tag"
+          AttributeName: "tag"
           AttributeType: "S"
       KeySchema: 
         - 
-          AttributeName: "Header"
+          AttributeName: "id"
           KeyType: "HASH"
         - 
-          AttributeName: "Content"
+          AttributeName: "tag"
           KeyType: "RANGE"
       GlobalSecondaryIndexes:
         -
           IndexName: "GSI"
           KeySchema:
             -
-              AttributeName: "Tag"
+              AttributeName: "header"
               KeyType: "HASH"
           Projection:
             ProjectionType: "KEYS_ONLY"
