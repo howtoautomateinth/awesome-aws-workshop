@@ -5,11 +5,13 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",
+    "create-local-table": "node ./script/createLocalTable.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Mart - Howtoautomate.in.th",
   "license": "ISC",
   "dependencies": {
+    "aws-sdk": "^2.713.0",
     "config": "^3.3.1",
     "dotenv": "^8.2.0",
     "ejs": "^3.1.3",
