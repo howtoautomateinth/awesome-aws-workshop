@@ -6,6 +6,7 @@
   "scripts": {
     "start": "nodemon index.js",
     "create-local-table": "node ./script/createLocalTable.js",
+    "remove-local-table": "node ./script/removeLocalTable.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Mart - Howtoautomate.in.th",
