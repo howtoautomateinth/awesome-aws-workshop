@@ -63,19 +63,19 @@
           </form>
         </div>
       </div>
-      <hr/>
+      <hr />
       <div id="todo_items" class="row">
         <div class="col">
           <h3>Items List</h3>
-
+          <% todolist.forEach(function(item) { %>
           <div class="card space">
             <div class="card-body">
-              <h5 class="card-title">Card title</h5>
-              <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+              <h5 class="card-title"><%= item.header %></h5>
+              <p class="card-text"><%= item.content %></p>
               <a href="#" class="btn btn-danger">Delete</a>
             </div>
           </div>
-
+          <% }); %>
         </div>
       </div>
     </main>
