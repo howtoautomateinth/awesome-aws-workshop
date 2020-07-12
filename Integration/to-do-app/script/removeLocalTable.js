@@ -1,9 +1,8 @@
 const AWS = require("aws-sdk");
-AWS.config.update({
-  region: "local",
+var dynamodb = new AWS.DynamoDB({
   endpoint: "http://localhost:8000",
+  region: "local"
 });
-var dynamodb = new AWS.DynamoDB();
 var params = {
     "TableName": "TodoTable"
 };
