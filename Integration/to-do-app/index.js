@@ -2,12 +2,16 @@ const express = require("express");
 const config = require("config");
 const AWS = require("aws-sdk");
 const app = express();
-const dynamodb = null;
+let dynamodb = null;
 
-if (config.has("LocalDbConfig")) {
-  const appConfig = config.get("LocalDbConfig");
+if (config.get("dbConfig.mode") == "local") {
+  const appConfig = config.get("dbConfig");
+  dynamodb = new AWS.DynamoDB({
+    endpoint: `${appConfig.host}:${appConfig.port}`,
+    region: `${appConfig.region}`,
+  });
   console.log("=== Set database to local ===");
-} else if (config.has("DbConfig")) {
+} else {
   dynamodb = new AWS.DynamoDB();
   console.log("=== Database witll base on your aws credential ===");
 }

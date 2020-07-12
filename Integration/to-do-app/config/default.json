@@ -1,5 +1,6 @@
 {
-  "LocalDbConfig": {
+  "dbConfig": {
+    "mode": "local",
     "host": "localhost",
     "port": 8000,
     "region": "local"
