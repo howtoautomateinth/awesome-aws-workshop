@@ -1,50 +1,92 @@
 const express = require("express");
 const config = require("config");
 const AWS = require("aws-sdk");
+const bodyParser = require("body-parser");
 const app = express();
-let dynamodb = null;
-
-if (config.get("dbConfig.mode") == "local") {
-  const appConfig = config.get("dbConfig");
-  dynamodb = new AWS.DynamoDB({
-    endpoint: `${appConfig.host}:${appConfig.port}`,
-    region: `${appConfig.region}`,
-  });
-  console.log("=== Set database to local ===");
-} else {
-  dynamodb = new AWS.DynamoDB();
-  console.log("=== Database witll base on your aws credential ===");
-}
+const router = express.Router();
+var port = process.env.PORT || 3000;
+let documentClient = null;
 
 app.set("view engine", "ejs");
 app.use("/static", express.static(__dirname + "/static"));
-
-var port = process.env.PORT || 3000;
-
-async function getAllToDoList() {
-  return [
-    {
-      header: "Header 1",
-      content: "Content 1",
-    },
-    {
-      header: "Header 2",
-      content: "Content 2",
-    },
-    {
-      header: "Header 3",
-      content: "Content 3",
-    },
-  ];
-}
-
-app.get("/", async function (req, res) {
-  let todolist = await getAllToDoList();
-  res.render("index.ejs", {
-    todolist: todolist,
-  });
-});
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+app.use("/", router);
 
 app.listen(port, () =>
   console.log(`Example app listening at http://localhost:${port}`)
 );
+
+if (config.get("dbConfig.mode") == "local") {
+  const appConfig = config.get("dbConfig");
+  AWS.config.update({
+    endpoint: `http://${appConfig.host}:${appConfig.port}`,
+    region: `${appConfig.region}`,
+  });
+  documentClient = new AWS.DynamoDB.DocumentClient();
+  console.log("=== Set database to local ===");
+} else {
+  documentClient = new AWS.DynamoDB.DocumentClient();
+  console.log("=== Database witll base on your aws credential ===");
+}
+
+// Middleware express router and AWS promise method to GetAllItems for render in ejs
+router.use(async (req, res, next) => {
+  var params = {
+    "TableName": "TodoTable",
+    "ReturnConsumedCapacity": "TOTAL",
+  };
+  req.todolist = [];
+  await documentClient.scan(params).promise().then(
+    function (data) {
+      console.log(data);
+      data.Items.forEach(element => {
+        req.todolist.push({
+          "header": element.header,
+          "content": element.content,
+          "tag": element.tag
+        })
+      });
+    },
+    function (error) {
+      console.log(error);
+    }
+  );
+  next();
+});
+
+router.get("/", async function (req, res) {
+  res.render("index.ejs", {
+    todolist: req.todolist
+  });
+});
+
+router.post("/write/todo", async function (req, res) {
+  var params = {
+    Item: {
+      "header": `${req.body.header}`,
+      "content": `${req.body.content}`,
+      "tag": `${req.body.tag}`
+    },
+    TableName: "TodoTable",
+    ReturnValues: "ALL_OLD"
+  };
+  await documentClient.put(params,function (err, data) {
+    if (err) {
+      console.log(err);
+    }
+    else {
+      console.log(data);
+    }
+  });
+  res.render("index.ejs", {
+    todolist: req.todolist
+  });
+});
+
+router.post("/remove/todo", async function (req, res) {
+  res.render("index.ejs", {
+    todolist: req.todolist
+  });
+});
+

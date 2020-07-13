@@ -1,96 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
-    />
-    <title>To-do list application</title>
-    <link
-      rel="stylesheet"
-      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
-      integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
-      crossorigin="anonymous"
-    />
-    <link rel="stylesheet" href="../static/css/default.css" />
-    <link
-      href="https://cdn.jsdelivr.net/npm/busy-load/dist/app.min.css"
-      rel="stylesheet"
-    />
-  </head>
 
-  <body>
-    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
-      <a class="navbar-brand" href="/">To-do list application</a>
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-toggle="collapse"
-        data-target="#navbarsExampleDefault"
-        aria-controls="navbarsExampleDefault"
-        aria-expanded="false"
-        aria-label="Toggle navigation"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-    </nav>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <title>To-do list application</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+    integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous" />
+  <link rel="stylesheet" href="../static/css/default.css" />
+  <link href="https://cdn.jsdelivr.net/npm/busy-load/dist/app.min.css" rel="stylesheet" />
+</head>
 
-    <main role="main" class="container">
-      <div id="todo_controller" class="row">
-        <div class="col">
-          <h3>To-do List</h3>
-          <form>
-            <fieldset>
-              <div class="form-group">
-                <label for="FormHeader">Header</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  placeholder="Some header to remind you"
-                />
-              </div>
-              <div class="form-group">
-                <label for="FormContent">Content</label>
-                <textarea
-                  class="form-control"
-                  placeholder="Item detail"
-                  rows="3"
-                ></textarea>
-              </div>
-              <button type="submit" class="btn btn-primary">Submit</button>
-            </fieldset>
-          </form>
+<body>
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+    <a class="navbar-brand" href="/">To-do list application</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault"
+      aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+  </nav>
+
+  <main role="main" class="container">
+    <div id="todo_controller" class="row">
+      <div class="col">
+        <div class="card">
+          <div class="card-body">
+            <form method="POST" action="/write/todo">
+              <fieldset>
+                <div class="form-group">
+                  <label for="FormHeader">Header</label>
+                  <input type="text" name="header" class="form-control" placeholder="To-do header" />
+                </div>
+                <div class="form-group">
+                  <label for="FormContent">Content</label>
+                  <textarea name="content" class="form-control" placeholder="Item content" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="FormContent">Tag</label>
+                  <input type="text" name="tag" class="form-control" placeholder="To-do tag" />
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+              </fieldset>
+            </form>
+          </div>
         </div>
       </div>
-      <hr />
-      <div id="todo_items" class="row">
-        <div class="col">
-          <h3>Items List</h3>
-          <% todolist.forEach(function(item) { %>
+    </div>
+    <hr />
+    <div id="todo_items" class="row">
+      <div class="col">
+        <h3>Items List</h3>
+        <% todolist.forEach(function(item) { %>
+        <form method="POST" action="/remove/todo">
           <div class="card space">
             <div class="card-body">
               <h5 class="card-title"><%= item.header %></h5>
               <p class="card-text"><%= item.content %></p>
-              <a href="#" class="btn btn-danger">Delete</a>
+              <input type="hidden" name="todoid" value="<%= item.tag %>" />
+              <button type="submit" class="btn btn-danger">Delete</button>
             </div>
           </div>
-          <% }); %>
-        </div>
+        </form>
+        <% }); %>
       </div>
-    </main>
-    <!-- /.container -->
+    </div>
+  </main>
+  <!-- /.container -->
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
-      integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
-      integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
-      crossorigin="anonymous"
-    ></script>
-  </body>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+    integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
+    integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
+    crossorigin="anonymous"></script>
+</body>
+
 </html>
