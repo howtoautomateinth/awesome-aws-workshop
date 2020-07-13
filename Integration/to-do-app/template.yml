@@ -265,6 +265,7 @@ Resources:
   DynamoDBTable: 
     Type: AWS::DynamoDB::Table
     Properties: 
+      TableName: TodoTable
       AttributeDefinitions: 
         - 
           AttributeName: "id"
@@ -277,7 +278,7 @@ Resources:
           AttributeType: "S"
       KeySchema: 
         - 
-          AttributeName: "id"
+          AttributeName: "header"
           KeyType: "HASH"
         - 
           AttributeName: "tag"
@@ -287,7 +288,7 @@ Resources:
           IndexName: "GSI"
           KeySchema:
             -
-              AttributeName: "header"
+              AttributeName: "id"
               KeyType: "HASH"
           Projection:
             ProjectionType: "KEYS_ONLY"

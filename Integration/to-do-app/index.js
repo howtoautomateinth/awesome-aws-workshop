@@ -1,12 +1,13 @@
 const express = require("express");
 const config = require("config");
+const appConfig = config.get("dbConfig");
+let tableName = appConfig.tableName;
 const AWS = require("aws-sdk");
 const bodyParser = require("body-parser");
 const app = express();
 const router = express.Router();
 var port = process.env.PORT || 3000;
 let documentClient = null;
-let tableName = null;
 
 app.set("view engine", "ejs");
 app.use("/static", express.static(__dirname + "/static"));
@@ -19,8 +20,6 @@ app.listen(port, () =>
 );
 
 if (config.get("dbConfig.mode") == "local") {
-  const appConfig = config.get("dbConfig");
-  tableName = appConfig.tableName;
   AWS.config.update({
     endpoint: `http://${appConfig.host}:${appConfig.port}`,
     region: `${appConfig.region}`,
@@ -28,8 +27,13 @@ if (config.get("dbConfig.mode") == "local") {
   documentClient = new AWS.DynamoDB.DocumentClient();
   console.log("=== Set database to local ===");
 } else {
+  AWS.config.update({ region: "us-east-1", endpoint: "https://dynamodb.us-east-1.amazonaws.com" });
   documentClient = new AWS.DynamoDB.DocumentClient();
-  console.log("=== Database witll base on your aws credential ===");
+  console.log("=== Database will base on your aws credential ===");
+}
+
+function failureCallback(err) {
+  console.error("Catch Promise Error: " + err);
 }
 
 // Middleware express router and AWS promise method to GetAllItems for render in ejs
@@ -52,20 +56,20 @@ router.use(async (req, res, next) => {
           });
         });
       },
-      function (error) {
+      function (err) {
         console.error("Unable to list item. Error JSON:", JSON.stringify(err, null, 2));
       }
-    );
+    ).catch(failureCallback);
   next();
 });
 
-router.get("/", async function (req, res) {
+router.get("/", function (req, res) {
   res.render("index.ejs", {
     todolist: req.todolist,
   });
 });
 
-router.post("/write/todo", async function (req, res) {
+router.post("/write/todo", function (req, res) {
   var params = {
     Item: {
       header: `${req.body.header}`,
@@ -85,7 +89,7 @@ router.post("/write/todo", async function (req, res) {
   res.redirect("back");
 });
 
-router.post("/remove/todo", async function (req, res) {
+router.post("/remove/todo", function (req, res) {
   var params = {
     TableName: tableName,
     Key: {
