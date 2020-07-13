@@ -3,6 +3,7 @@
     "mode": "local",
     "host": "localhost",
     "port": 8000,
-    "region": "local"
+    "region": "local",
+    "tableName": "TodoTable"
   }
 }

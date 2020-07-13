@@ -56,7 +56,8 @@
             <div class="card-body">
               <h5 class="card-title"><%= item.header %></h5>
               <p class="card-text"><%= item.content %></p>
-              <input type="hidden" name="todoid" value="<%= item.tag %>" />
+              <input type="hidden" name="todoid" value="<%= item.header %>" />
+              <input type="hidden" name="todotag" value="<%= item.tag %>" />
               <button type="submit" class="btn btn-danger">Delete</button>
             </div>
           </div>
