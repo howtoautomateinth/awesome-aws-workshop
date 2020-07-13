@@ -44,7 +44,6 @@ router.use(async (req, res, next) => {
     .promise()
     .then(
       function (data) {
-        console.log("listItem succeeded:", JSON.stringify(data, null, 2));
         data.Items.forEach((element) => {
           req.todolist.push({
             header: element.header,
@@ -91,8 +90,9 @@ router.post("/remove/todo", async function (req, res) {
     TableName: tableName,
     Key: {
       "header": `${req.body.todoid}`,
-      "tag": `${req.body.tag}`
-    }
+      "tag": `${req.body.todotag}`
+    },
+    ReturnValues: "ALL_OLD"
   };
   documentClient.delete(params, function (err, data) {
     if (err) {
