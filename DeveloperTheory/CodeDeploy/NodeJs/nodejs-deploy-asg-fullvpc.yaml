@@ -1,0 +1,518 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Full scale of Web Server (NodeJs) that can scalable with Application
+  Load Balaner.
+Metadata: {}
+Parameters:
+  AppName:
+    Description: Application
+    Type: String
+    Default: FullScaleApplication
+  TagKey:
+    Description: EC2 Tag Key
+    Type: String
+    Default: asggroup
+  TagValue:
+    Description: EC2 Tag Valie
+    Type: String
+    Default: fullscale
+  EnvironmentName:
+    Description: An environment name
+    Type: String
+    Default: scaletest
+  VpcCIDR:
+    Description: IP range for this VPC
+    Default: 10.0.0.1/16
+    Type: String
+  FirstPublicSubnetCIDR:
+    Description: IP range for first public subnet
+    Default: 10.0.10.1/24
+    Type: String
+  SecondPublicSubnetCIDR:
+    Description: IP range for second public subnet
+    Default: 10.0.11.1/24
+    Type: String
+  FirstPrivateSubnetCIDR:
+    Description: IP range for first public subnet
+    Default: 10.0.20.1/24
+    Type: String
+  SecondPrivateSubnetCIDR:
+    Description: IP range for second public subnet
+    Default: 10.0.21.1/24
+    Type: String
+Mappings: {}
+Conditions: {}
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Ref: VpcCIDR
+      EnableDnsHostnames: true
+      Tags:
+      - Key: Name
+        Value:
+          Ref: EnvironmentName
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value:
+          Ref: EnvironmentName
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: VPC
+      InternetGatewayId:
+        Ref: InternetGateway
+  FirstPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        Ref: FirstPublicSubnetCIDR
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - Fn::GetAZs: ''
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub:
+          - "${EnivronmentName} Public Subnet (AZ1)"
+          - EnivronmentName:
+              Ref: EnvironmentName
+  SecondPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        Ref: SecondPublicSubnetCIDR
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - Fn::GetAZs: ''
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub:
+          - "${EnivronmentName} Public Subnet (AZ2)"
+          - EnivronmentName:
+              Ref: EnvironmentName
+  FirstPrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        Ref: FirstPrivateSubnetCIDR
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - Fn::GetAZs: ''
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub:
+          - "${EnivronmentName} Private Subnet (AZ1)"
+          - EnivronmentName:
+              Ref: EnvironmentName
+  SecondPrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock:
+        Ref: SecondPrivateSubnetCIDR
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - Fn::GetAZs: ''
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub:
+          - "${EnivronmentName} Private Subnet (AZ2)"
+          - EnivronmentName:
+              Ref: EnvironmentName
+  FirstNatGatewayEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+  SecondNatGatewayEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+  FirstNatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt: FirstNatGatewayEIP.AllocationId
+      SubnetId:
+        Ref: FirstPublicSubnet
+  SecondNatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt: SecondNatGatewayEIP.AllocationId
+      SubnetId:
+        Ref: SecondPublicSubnet
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub:
+          - "${EnivronmentName} Public Routes"
+          - EnivronmentName:
+              Ref: EnvironmentName
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+  FirstPublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      SubnetId:
+        Ref: FirstPublicSubnet
+  SecondPublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      SubnetId:
+        Ref: SecondPublicSubnet
+  FirstPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub:
+          - "${EnivronmentName} Private Routes (AZ1)"
+          - EnivronmentName:
+              Ref: EnvironmentName
+  DefaultFirstPrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: FirstPrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: FirstNatGateway
+  FirstPrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: FirstPrivateRouteTable
+      SubnetId:
+        Ref: FirstPrivateSubnet
+  SecondPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub:
+          - "${EnivronmentName} Private Routes (AZ2)"
+          - EnivronmentName:
+              Ref: EnvironmentName
+  DefaultSecondPrivateRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId:
+        Ref: SecondPrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: SecondNatGateway
+  SecondPrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: SecondPrivateRouteTable
+      SubnetId:
+        Ref: SecondPrivateSubnet
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: VPC
+      GroupDescription: allow 80 and 22
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        FromPort: 22
+        ToPort: 22
+        IpProtocol: tcp
+      - CidrIp: 0.0.0.0/0
+        FromPort: 80
+        ToPort: 80
+        IpProtocol: tcp
+      - CidrIp: 0.0.0.0/0
+        FromPort: 3000
+        ToPort: 3000
+        IpProtocol: tcp
+      - CidrIp: 0.0.0.0/0
+        FromPort: 3306
+        ToPort: 3306
+        IpProtocol: tcp
+      - CidrIp: 0.0.0.0/0
+        FromPort: -1
+        ToPort: -1
+        IpProtocol: icmp
+  myALBSecuirtyGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: VPC
+      GroupDescription: Enable HTTP/HTTPS Access
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        FromPort: 80
+        ToPort: 80
+        IpProtocol: tcp
+      - CidrIp: 0.0.0.0/0
+        FromPort: 443
+        ToPort: 443
+        IpProtocol: tcp
+  MyLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      IpAddressType: ipv4
+      Subnets:
+      - Ref: FirstPublicSubnet
+      - Ref: SecondPublicSubnet
+      SecurityGroups:
+      - Ref: myALBSecuirtyGroup
+      Type: application
+  myListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn:
+          Ref: myTargetGroup
+      LoadBalancerArn:
+        Ref: MyLoadBalancer
+      Port: 80
+      Protocol: HTTP
+  myTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 3000
+      Protocol: HTTP
+      VpcId:
+        Ref: VPC
+  myASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: Scalable Web
+      AvailabilityZones:
+      - Fn::Select:
+        - 0
+        - Fn::GetAZs: ''
+      - Fn::Select:
+        - 1
+        - Fn::GetAZs: ''
+      LaunchConfigurationName:
+        Ref: myLaunchConfig
+      MinSize: '2'
+      MaxSize: '4'
+      VPCZoneIdentifier:
+      - Ref: FirstPublicSubnet
+      - Ref: SecondPublicSubnet
+      Tags:
+        - Key: !Ref TagKey
+          PropagateAtLaunch: true
+          Value: !Ref TagValue
+      TargetGroupARNs:
+        - !Ref myTargetGroup
+  myLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets: 
+          InstallAndRun: 
+            - "config-ec2"
+        config-ec2:
+          packages:
+            yum:
+              ruby: []
+          files:
+            /home/ec2-user/install:
+              mode: "000755"
+              source:
+                'Fn::Join':
+                  - ''
+                  - - 'https://aws-codedeploy-'
+                    - !Ref 'AWS::Region'
+                    - '.s3.amazonaws.com/latest/install'
+          commands:
+            00-install-agent:
+              command: "./install auto"
+              cwd: "/home/ec2-user/"
+    Properties:
+      ImageId: ami-01d025118d8e760db
+      InstanceType: t2.micro
+      KeyName: cfn-key
+      IamInstanceProfile: !Ref InstanceRoleInstanceProfile
+      SecurityGroups:
+      - Ref: InstanceSecurityGroup
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sdm"
+        Ebs:
+          VolumeType: io1
+          Iops: 200
+          DeleteOnTermination: true
+          VolumeSize: 20
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash -xe
+            - |
+              # Install the files and packages from the metadata
+            - '/opt/aws/bin/cfn-init -v '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource myLaunchConfig '
+            - '         --configsets InstallAndRun '
+            - '         --region '
+            - !Ref 'AWS::Region'
+  InstanceRoleInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Roles:
+        - !Ref InstanceServiceRole
+  InstanceServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: HTA-AWS-EC2-Service
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'cloudformation:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'autoscaling:*'
+                Resource: '*'
+        - PolicyName: hta-cloudformation-cloudwatch
+          PolicyDocument: 
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'logs:*'
+                Resource:
+                  - '*'
+
+  CodeDeployApplication:
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ComputePlatform: Server
+      ApplicationName: !Ref AppName
+  CodeDeployConfigurationGroup:
+    Type: AWS::CodeDeploy::DeploymentConfig
+    Properties: 
+      DeploymentConfigName: HTADeployConfigurationGroup 
+      MinimumHealthyHosts: 
+        Type: "FLEET_PERCENT"
+        Value: 75
+  HTADeploymentGroup: 
+    Type: AWS::CodeDeploy::DeploymentGroup
+    DependsOn:
+      - myLaunchConfig
+    Properties: 
+      AutoScalingGroups:
+        - Ref: myASG
+      ApplicationName: !Ref AppName
+      DeploymentConfigName: "CodeDeployDefault.OneAtATime"
+      Deployment: 
+        Description: "A NodeJs Deployment"
+        IgnoreApplicationStopFailures: true
+        Revision:
+          RevisionType: S3
+          S3Location: 
+            Bucket: 'hta-cloudformation-bucket'
+            Key: 'DeveloperTheory/Revision/NodeJsCode.zip'
+            BundleType: zip
+      ServiceRoleArn: !GetAtt  CodeDeployServiceRole.Arn
+  CodeDeployServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codedeploy.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: AWS-CodeDeploy-Service
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'autoscaling:*'
+                Resource: '*'
+Outputs:
+  ALBDNS:
+    Value:
+      Fn::Join:
+      - ''
+      - - http://
+        - Fn::GetAtt: MyLoadBalancer.DNSName
+    Description: Application Load Balancer - DNS Name
