@@ -12,6 +12,10 @@ variable "PATH_TO_PRIVATE_KEY" {
   default = "cfn-key.ppk"
 }
 
+variable "PATH_TO_PUBLIC_KEY" {
+  default = "cfn-key.ppk"
+}
+
 variable "AMIS" {
   type = map(string)
   default = {
