@@ -1,6 +1,6 @@
 # varirables files
 terraform.tfvars
-!terraform.tfvars
+terraform.tfvars
 *.ppk
 *.pub
 *-public
