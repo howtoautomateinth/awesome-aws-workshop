@@ -23,8 +23,5 @@ resource "aws_security_group" "hta-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "hta-sg"
-  }
 }
 

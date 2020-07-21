@@ -9,11 +9,11 @@ variable "AWS_SECRET_KEY" {
 }
 
 variable "PATH_TO_PRIVATE_KEY" {
-  default = "cfn-key.ppk"
+  
 }
 
 variable "PATH_TO_PUBLIC_KEY" {
-  default = "cfn-key.ppk"
+  default = "cfn-key"
 }
 
 variable "AMIS" {
