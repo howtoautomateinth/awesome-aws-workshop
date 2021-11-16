@@ -13,6 +13,6 @@
   "author": "Howtoautomate.in.th",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.705.0"
+    "aws-sdk": "^2.814.0"
   }
 }
